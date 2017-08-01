@@ -165,7 +165,7 @@ namespace // anonymous namespace begin
     }
 } // anonymous namespace end
 
-FtpClient::FtpClient(const std::string &sUserPwd/* = "avsys:avsys"*/)
+FtpClient::FtpClient(const std::string &sUserPwd/* = "admin:123456"*/)
 : Poco::Runnable()
 , Poco::Thread()
 , m_CallbackMutex()
@@ -182,6 +182,16 @@ FtpClient::~FtpClient()
 {
     Cancel();
     AwaitResult();
+}
+
+void FtpClient::SetUserPwd(const std::string &sUserPwd)
+{
+    m_sUserPwd = sUserPwd;
+}
+
+const std::string FtpClient::GetUserPwd() const
+{
+    return m_sUserPwd;
 }
 
 bool FtpClient::RegisterObserver(ProgressObserver *observer)

@@ -52,9 +52,13 @@ class FtpClient
     };
 
 public:
-    FtpClient(const std::string &sUserPwd = "avsys:avsys");
+    FtpClient(const std::string &sUserPwd = "admin:123456");
 
     ~FtpClient();
+
+    void SetUserPwd(const std::string &sUserPwd);
+
+    const std::string GetUserPwd() const;
 
     bool RegisterObserver(ProgressObserver *observer);
 
