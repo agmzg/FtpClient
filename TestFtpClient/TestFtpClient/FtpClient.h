@@ -79,9 +79,16 @@ public:
         const std::string &sLocalPath,
         const std::string &sUserPwd = "");
 
-    bool UploadDirectoryAsync(
+    bool UploadDirAllFilesAsync(
         const std::string &sRemoteDirectory,
         const std::string &sLocalDirectory,
+        const std::string &sUserPwd = "");
+
+    bool UploadDirMatchedFilesAsync(
+        const std::string &sRemoteDirectory,
+        const std::string &sLocalDirectory,
+        const std::vector<std::string> &vectMatch,
+        bool bMatch = true,
         const std::string &sUserPwd = "");
 
     bool DownloadFileSync(

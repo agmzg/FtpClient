@@ -120,7 +120,7 @@ namespace // anonymous namespace begin
         return 0;
     }
 
-    bool _GetUploadTasks(
+    bool _GetUploadTasksWithoutFilter(
         const std::string &sLocalDirectory,
         const std::string &sRemoteDirectory,
         std::deque<std::pair<std::string, std::string> > & uploadTasks,
@@ -128,10 +128,10 @@ namespace // anonymous namespace begin
     {
         iTotalSize = 0;
         std::string sUrlDirectory = sRemoteDirectory;
-        if (sRemoteDirectory.back() != '/')
-        {
-            sUrlDirectory += "/";
-        }
+//         if (sRemoteDirectory.back() != '/')
+//         {
+//             sUrlDirectory += "/";
+//         }
         Poco::DirectoryIterator it(sLocalDirectory), end;
         while (it != end)
         {
@@ -142,6 +142,70 @@ namespace // anonymous namespace begin
                 uploadTasks.push_back(std::make_pair(sRemotePath,
                     it->path()));
                 iTotalSize += (long)it->getSize();
+            }
+            ++it;
+        }
+
+        return !uploadTasks.empty();
+    }
+
+    bool _GetUploadTasksWithFilter(
+        const std::string &sLocalDirectory,
+        const std::string &sRemoteDirectory,
+        std::deque<std::pair<std::string, std::string> > & uploadTasks,
+        long &iTotalSize,
+        const std::vector<std::string> &vectMatch,
+        bool bMatch)
+    {
+        iTotalSize = 0;
+        std::string sUrlDirectory = sRemoteDirectory;
+//         if (sRemoteDirectory.back() != '/')
+//         {
+//             sUrlDirectory += "/";
+//         }
+        Poco::DirectoryIterator it(sLocalDirectory), end;
+        while (it != end)
+        {
+            if (!it->isFile())
+            {
+                ++it;
+                continue;
+            }
+            std::string sExt = Poco::Path(it->path()).getExtension();
+            if (bMatch)
+            {
+                for (int i = 0; i < vectMatch.size(); ++i)
+                {
+                    if (sExt == vectMatch[i])
+                    {
+                        std::string sRemotePath = sUrlDirectory +
+                            Poco::Path(it->path()).getFileName();
+                        uploadTasks.push_back(std::make_pair(sRemotePath,
+                            it->path()));
+                        iTotalSize += (long)it->getSize();
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                bool bNotHas = true;
+                for (int i = 0; i < vectMatch.size(); ++i)
+                {
+                    if (sExt == vectMatch[i])
+                    {
+                        bNotHas = false;
+                        break;
+                    }
+                }
+                if (bNotHas)
+                {
+                    std::string sRemotePath = sUrlDirectory +
+                        Poco::Path(it->path()).getFileName();
+                    uploadTasks.push_back(std::make_pair(sRemotePath,
+                        it->path()));
+                    iTotalSize += (long)it->getSize();
+                }
             }
             ++it;
         }
@@ -165,7 +229,7 @@ namespace // anonymous namespace begin
     }
 } // anonymous namespace end
 
-FtpClient::FtpClient(const std::string &sUserPwd/* = "admin:123456"*/)
+FtpClient::FtpClient(const std::string &sUserPwd/* = "avsys:avsys"*/)
 : Poco::Runnable()
 , Poco::Thread()
 , m_CallbackMutex()
@@ -254,7 +318,7 @@ bool FtpClient::UploadFileAsync(
     return false;
 }
 
-bool FtpClient::UploadDirectoryAsync(
+bool FtpClient::UploadDirAllFilesAsync(
     const std::string &sRemoteDirectory,
     const std::string &sLocalDirectory,
     const std::string &sUserPwd/* = ""*/)
@@ -266,8 +330,32 @@ bool FtpClient::UploadDirectoryAsync(
     {
         {
             Poco::FastMutex::ScopedLock l(m_FtpParam.theMutex);
-            _GetUploadTasks(sLocalDirectory, sRemoteDirectory,
-                m_UploadTasks, m_FtpParam.iTotalSize);
+            _GetUploadTasksWithoutFilter(sLocalDirectory,
+                sRemoteDirectory, m_UploadTasks, m_FtpParam.iTotalSize);
+        }
+        Poco::Thread::start(*this);
+        return true;
+    }
+    fprintf(stderr, "Routine is Running\n");
+    return false;
+}
+
+bool FtpClient::UploadDirMatchedFilesAsync(
+    const std::string &sRemoteDirectory,
+    const std::string &sLocalDirectory,
+    const std::vector<std::string> &vectMatch,
+    bool bMatch/* = true*/,
+    const std::string &sUserPwd/* = ""*/)
+{
+    if (!Poco::File(sLocalDirectory).exists() ||
+        !Poco::Path(sLocalDirectory).isDirectory()) return false;
+
+    if (SetStartState(sUserPwd, Upload))
+    {
+        {
+            Poco::FastMutex::ScopedLock l(m_FtpParam.theMutex);
+            _GetUploadTasksWithFilter(sLocalDirectory, sRemoteDirectory,
+                m_UploadTasks, m_FtpParam.iTotalSize, vectMatch, bMatch);
         }
         Poco::Thread::start(*this);
         return true;
@@ -319,7 +407,7 @@ bool FtpClient::AwaitResult()
         fprintf(stderr, "%s\n", e.what());
         return false;
     }
-    return m_bOptResult;
+    return !m_FtpParam.bCancel && m_bOptResult;
 }
 
 bool FtpClient::Cancel()

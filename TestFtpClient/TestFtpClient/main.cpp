@@ -38,7 +38,7 @@ void TestSync()
 
     if (bResult)
     {
-        printf("upload success!\n");
+        printf("UploadFileSync success!\n");
     }
 
     bResult = client.DownloadFileSync("ftp://192.168.1.170/test/upload.h264",
@@ -46,7 +46,7 @@ void TestSync()
 
     if (bResult)
     {
-        printf("download success!\n");
+        printf("DownloadFileSync success!\n");
     }
 
     //system("pause");
@@ -57,28 +57,43 @@ void TestAsync()
     ProgressMonitor monitor;
     FtpClient client;
     client.RegisterObserver(&monitor);
-//     client.UploadDirectoryAsync("ftp://192.168.1.170/test/",
-//         "D:\\testFTP\\");
-//     bool bResult = client.AwaitResult();
-// 
-//     client.UploadFileAsync("ftp://192.168.1.170/test/upload.h264",
-//         "D:\\testFTP\\upload.h264");
-// 
-//     Sleep(2000);
-//     client.Cancel();
-//     bResult = client.AwaitResult();
-//     if (bResult)
-//     {
-//         printf("upload success!\n");
-//     }
+    std::vector<std::string> vectMatch;
+    vectMatch.push_back("h264");
+    vectMatch.push_back("txt");
+    client.UploadDirMatchedFilesAsync("ftp://192.168.1.170/test/",
+        "D:\\testFTP\\", vectMatch);
+    bool bResult = client.AwaitResult();
+    if (bResult)
+    {
+        printf("UploadDirMatchedFilesAsync success!\n");
+    }
+
+    client.UploadDirAllFilesAsync("ftp://192.168.1.170/test/",
+        "D:\\testFTP\\");
+    bResult = client.AwaitResult();
+    if (bResult)
+    {
+        printf("UploadDirAllFilesAsync success!\n");
+    }
+
+    client.UploadFileAsync("ftp://192.168.1.170/test/upload.h264",
+        "D:\\testFTP\\upload.h264");
+
+    Sleep(2000);
+    client.Cancel();
+    bResult = client.AwaitResult();
+    if (!bResult)
+    {
+        printf("UploadFileAsync cancel success!\n");
+    }
 
     client.DownloadFileAsync("ftp://192.168.1.170/test/upload.h264",
         "D:\\testFTP1\\download.h264");
 
-    bool bResult = client.AwaitResult();
+    bResult = client.AwaitResult();
     if (bResult)
     {
-        printf("download success!\n");
+        printf("DownloadFileAsync success!\n");
     }
 }
 
