@@ -229,7 +229,7 @@ namespace // anonymous namespace begin
     }
 } // anonymous namespace end
 
-FtpClient::FtpClient(const std::string &sUserPwd/* = "avsys:avsys"*/)
+FtpClient::FtpClient(const std::string &sUserPwd/* = "admin:123456"*/)
 : Poco::Runnable()
 , Poco::Thread()
 , m_CallbackMutex()
